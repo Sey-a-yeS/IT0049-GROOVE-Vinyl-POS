@@ -25,6 +25,7 @@ final class CrudHttpWorkflowTest extends CIUnitTestCase
         $create->assertRedirectTo(site_url('products'));
         $product = $this->db->table('products')->where('name', 'HTTP Test Product')->get()->getRowArray();
         $this->assertSame('1234.50', $product['price']);
+        $this->db->table('products')->where('id', $product['id'])->update(['image' => 'existing-product.jpg']);
 
         $update = $this->authenticatedPost('/products/' . $product['id'], [
             'name' => 'HTTP Test Product Updated',
@@ -32,7 +33,9 @@ final class CrudHttpWorkflowTest extends CIUnitTestCase
             'stock_quantity' => '7',
         ]);
         $update->assertRedirectTo(site_url('products/' . $product['id']));
-        $this->assertSame(7, (int) $this->db->table('products')->select('stock_quantity')->where('id', $product['id'])->get()->getRow('stock_quantity'));
+        $updatedProduct = $this->db->table('products')->where('id', $product['id'])->get()->getRowArray();
+        $this->assertSame(7, (int) $updatedProduct['stock_quantity']);
+        $this->assertSame('existing-product.jpg', $updatedProduct['image']);
 
         $archive = $this->authenticatedPost('/products/' . $product['id'] . '/archive');
         $archive->assertRedirectTo(site_url('products'));
@@ -73,6 +76,7 @@ final class CrudHttpWorkflowTest extends CIUnitTestCase
         $create->assertRedirectTo(site_url('staff'));
         $staff = $this->db->table('users')->where('username', 'httpstaff')->get()->getRowArray();
         $this->assertTrue(password_verify('Strong-test-password!', $staff['password']));
+        $this->db->table('users')->where('id', $staff['id'])->update(['avatar' => 'existing-avatar.png']);
 
         $update = $this->authenticatedPost('/staff/' . $staff['id'], [
             'username' => 'httpstaff',
@@ -83,6 +87,7 @@ final class CrudHttpWorkflowTest extends CIUnitTestCase
         $updated = $this->db->table('users')->where('id', $staff['id'])->get()->getRowArray();
         $this->assertSame('HTTP Staff Updated', $updated['full_name']);
         $this->assertSame($staff['password'], $updated['password']);
+        $this->assertSame('existing-avatar.png', $updated['avatar']);
 
         $archive = $this->authenticatedPost('/staff/' . $staff['id'] . '/archive');
         $archive->assertRedirectTo(site_url('staff'));
