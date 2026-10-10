@@ -102,6 +102,16 @@ final class CrudHttpWorkflowTest extends CIUnitTestCase
         $this->assertSame($before, $this->db->table('products')->countAllResults());
     }
 
+    public function testCurrentStaffAccountCannotBeArchived(): void
+    {
+        $staff = $this->db->table('users')->where('is_archived', false)->get()->getRowArray();
+        $result = $this->authenticatedPost('/staff/' . $staff['id'] . '/archive');
+
+        $result->assertRedirectTo(site_url('staff'));
+        $result->assertSessionHas('error', 'You cannot archive the account currently signed in.');
+        $this->assertSame(0, (int) $this->db->table('users')->select('is_archived')->where('id', $staff['id'])->get()->getRow('is_archived'));
+    }
+
     private function authenticatedPost(string $path, array $data = [])
     {
         $staff = $this->db->table('users')->where('is_archived', false)->get()->getRowArray();

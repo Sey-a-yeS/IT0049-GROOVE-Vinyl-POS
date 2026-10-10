@@ -1,167 +1,175 @@
-# GROOVE Vinyl and Music Store POS
+# GROOVE — Vinyl & Music Store POS
 
-GROOVE is a standalone CodeIgniter 4 point-of-sale management system created for the IT0049 Midterm Project. It provides authenticated staff access to product, customer, and staff management, image uploads, atomic sale recording, inventory control, and joined sales history.
+GROOVE is a standalone CodeIgniter 4 point-of-sale and store-management application built for the IT0049 Midterm Project. It combines authenticated staff access, catalog and customer CRUD, prepared image uploads, atomic inventory deduction, and an auditable sales ledger in one original retro-modern interface.
 
-This repository is independent from the earlier `pos-system` and `tasks-for-today` assessment projects.
+This repository is independent from the earlier `pos-system` and `tasks-for-today` projects.
+
+## Features
+
+- Secure staff login, session regeneration, logout, CSRF protection, and login throttling
+- Dashboard with real product, customer, staff, sale, low-stock, and recent-sale data
+- Product, customer, and staff create/read/update/archive workflows
+- Genuine JPEG/PNG product and avatar uploads, cropped to 800 × 800 with safe random names
+- Record Sale workflow with live preview, server-authoritative pricing, row locking, rollback, and one-time form tokens
+- Joined Sales History that keeps archived relationships readable
+- Searchable, paginated management tables
+- Responsive layouts at desktop, tablet, and 390 px mobile widths
+- Visible focus states, semantic landmarks, labelled fields, error associations, and reduced-motion support
 
 ## Technology stack
 
-- PHP 8.2 or newer
+- PHP 8.2 or newer (developed and tested on PHP 8.5.10)
 - CodeIgniter 4.7
-- MySQL 8 or newer with InnoDB
+- MySQL 8 or compatible modern MySQL with InnoDB
 - Composer 2
-- GD PHP extension for prepared product images and avatars
+- PHP extensions: `curl`, `fileinfo`, `gd`, `intl`, `mbstring`, `mysqli`, and `openssl`
 - PHPUnit 10 for automated verification
 
-## System requirements
+The Composer constraint is PHP `^8.2`; production hosting does not need PHP 8.5 specifically.
 
-Confirm PHP, Composer, MySQL, and the required PHP extensions are available:
+## Screenshots
 
-```bash
-php -v
-composer --version
-mysql --version
-php -m | grep -E 'curl|fileinfo|gd|intl|mbstring|mysqli|openssl'
-```
+The completed local interface includes the login screen, dashboard, product catalog, customer and staff directories, Record Sale workflow, and Sales History. Repository screenshots are intentionally pending until the final hosted URL and production data are available; do not treat a localhost capture as proof of hosting.
 
-## Installation
+## Local installation
 
-1. Install PHP dependencies.
+1. Install dependencies.
 
    ```bash
    composer install
    ```
 
-2. Copy the safe environment template.
+2. Copy the development environment template.
 
    ```bash
    cp .env.example .env
    ```
 
-3. Create a dedicated MySQL database. Use a database account with access only to the databases it needs.
+3. Create dedicated databases. The test database must be disposable.
 
    ```sql
    CREATE DATABASE groove_pos_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE DATABASE groove_pos_test_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
 
-4. Update the database username and password in `.env`. Never commit `.env`.
+4. Set the local database username/password in `.env`. Never commit `.env`.
 
-5. Create the four required tables, indexes, constraints, and foreign keys.
+5. Create the required schema and load the fictional starter catalog.
 
    ```bash
    php spark migrate
-   ```
-
-6. Load the fictional product, customer, and staff records.
-
-   ```bash
    php spark db:seed GrooveSeeder
    ```
 
-7. Set a local password for an existing seeded account. The password is read from a one-command environment variable and is not stored in the repository or exposed by a web route.
+6. Securely initialize one existing staff password. The command targets exactly one active username, hashes the password, never prints it, and has no web route.
 
    ```bash
-   GROOVE_DEMO_PASSWORD='choose-a-strong-local-password' php spark groove:staff-password grooveadmin
+   printf 'Enter a new staff password: '
+   IFS= read -r -s GROOVE_STAFF_PASSWORD
+   printf '\n'
+   export GROOVE_STAFF_PASSWORD
+   php spark groove:staff-password grooveadmin
+   unset GROOVE_STAFF_PASSWORD
    ```
 
-   The seeded usernames are `grooveadmin`, `vinylclerk`, `stockroom`, and `weekendstaff`. Their initial hashes represent unknown random values, so run the command for any account that needs a known local password.
+   Seeded usernames are `grooveadmin`, `vinylclerk`, `stockroom`, and `weekendstaff`. Seeder-created passwords are deliberately unknown random values.
 
-8. Start the development server.
+7. Start the local server and open the displayed address.
 
    ```bash
    php spark serve --host 127.0.0.1 --port 8082
    ```
 
-9. Open `http://localhost:8082/` and sign in with the account initialized in step 7.
+## Main routes
 
-## Database design
+| Area | Route | Purpose |
+|---|---|---|
+| Login | `/login` | Staff authentication |
+| Dashboard | `/dashboard` | Live operational overview |
+| Products | `/products` | Catalog, stock, pricing, images |
+| Customers | `/customers` | Customer records |
+| Staff | `/staff` | Staff accounts and avatars |
+| Record Sale | `/sales/new` | Point-of-sale workflow |
+| Sales History | `/sales/history` | Joined transaction ledger |
 
-The required `products`, `customers`, `users`, and `sales` tables are created by migrations. The `sales` table retains the required relationships to all three parent tables.
+All management GET and POST routes pass through the authentication filter. Logout and every mutating form use POST with CSRF protection.
 
-GROOVE adds an `is_archived` field to products, customers, and users. This small extension preserves historical transactions instead of deleting referenced rows. Archived products are excluded from new sales, and archived staff cannot sign in.
+## Data model and lifecycle
 
-Database constraints reject negative prices or stock, non-positive sale quantities, and negative totals. Foreign-key indexes and an index on transaction time support joined history queries.
+Migrations create the official `products`, `customers`, `users`, and `sales` tables. The sales table has indexed foreign keys to all required parent records. `customer_id` is nullable for walk-ins.
 
-## Authentication and sessions
+Products, customers, and staff use an `is_archived` extension instead of destructive deletion. Archived records disappear from new operational selections while historical sales remain readable.
 
-- `POST /login` verifies a password hash with `password_verify()`.
-- Successful login regenerates the session ID and stores only the staff ID, username, display name, and avatar filename.
-- Every management route uses the `auth` filter.
-- Logout is a CSRF-protected POST request and destroys the authenticated session.
-- Session-based CSRF protection is enabled globally.
+## Image uploads
 
-For production, set the public base URL, enable HTTPS, and set `cookie.secure = true` in the production environment.
+Product images and staff avatars accept genuine JPG/JPEG or PNG content up to 2 MB. The application decodes and re-encodes each image to 800 × 800, stores a cryptographically random filename, and saves only that filename in MySQL.
 
-## Features and routes
-
-- Dashboard: `/dashboard`
-- Products: `/products`
-- Customers: `/customers`
-- Staff: `/staff`
-- Record Sale: `/sales/new`
-- Sales History: `/sales/history`
-
-Each management area supports create, read, update, and archive workflows with server-side validation and old-input preservation. Password inputs are never repopulated.
-
-## File uploads
-
-Product images and staff avatars accept genuine JPG/JPEG or PNG files up to 2 MB. Images are resized and cropped to a display-ready 800 by 800 pixels, renamed with a random server-generated filename, and saved under:
+Runtime files live in:
 
 - `public/uploads/products`
 - `public/uploads/avatars`
 
-Only the generated filename is stored in MySQL. Executable file extensions are blocked in the upload directory for Apache deployments. Ensure these directories are writable on the target host and back them up separately from the database.
+These folders are Git-ignored except for their placeholders. The target host must make them writable, persistent across releases, protected from script execution, and included in backups.
 
-## Sale processing and inventory safety
+## Sale integrity
 
-`SaleService` treats database values as authoritative. The browser never chooses the staff ID and cannot submit a trusted price or total.
+The browser preview is advisory. `SaleService` always retrieves the current database price and authenticated staff identity. In one MySQL transaction it validates active relationships, locks the selected product row with `SELECT ... FOR UPDATE`, checks stock, performs a conditional decrement, calculates money in integer cents, inserts the sale, and commits. Any failure rolls back inventory and the ledger together.
 
-Within one MySQL transaction, the service:
+The HTTP workflow adds a single-use sale token and disables repeat clicks. Refreshing the success/history page cannot submit another sale.
 
-1. Confirms the active staff account and optional active customer.
-2. Locks the selected product row with `SELECT ... FOR UPDATE`.
-3. Checks active status and current stock.
-4. Performs a conditional stock decrement.
-5. Calculates the total using integer cent arithmetic.
-6. Inserts exactly one sale and commits.
+## Testing
 
-Any failure rolls back both the inventory change and sale insert. Competing requests are serialized by the row lock and cannot oversell the product.
-
-## Automated tests
-
-Create a separate disposable test database and configure the `database.tests.*` values in `.env`.
-
-```sql
-CREATE DATABASE groove_pos_test_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-Run the suite:
+Configure `database.tests.*` in the private `.env`, then run:
 
 ```bash
 vendor/bin/phpunit --testdox --no-coverage
 ```
 
-The suite verifies schema and foreign keys, seed integrity, model CRUD and archiving, password hashing, login success and failure, protected routes and POST actions, image preparation, the required 10-to-7 controlled sale, rollback on an 8-unit oversell attempt, invalid quantities, and a real two-process inventory race.
+The suite covers schema and foreign keys, seed integrity, password hashes, authentication and protected routes, archived-login denial, HTTP CRUD, validation failures, genuine PNG/JPEG preparation, unsupported-image rejection, exact sale totals, rollback, duplicate-token rejection, and a real two-process inventory race.
 
-## Clean database reproduction
+Do not point PHPUnit at a database containing meaningful data; the database test trait refreshes its configured test schema.
 
-To verify a clean installation without touching the working database, point `database.default.database` temporarily to a disposable database and run:
+## Production deployment
+
+Use [.env.production.example](.env.production.example) as a checklist, never as a credentials file. Full provider-neutral instructions are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+Minimum production requirements:
+
+- PHP 8.2+ with the listed extensions
+- MySQL/InnoDB and permission to run migrations
+- The web document root set to the repository's `public/` directory
+- HTTPS with `app.forceGlobalSecureRequests = true` and `cookie.secure = true`
+- A private production `.env`, `CI_ENVIRONMENT = production`, and debug output disabled
+- Writable `writable/`, `public/uploads/products`, and `public/uploads/avatars`
+- Persistent upload storage and backups of both MySQL and uploaded images
+- Apache rewrite support or an equivalent Nginx front-controller rule
+
+Recommended release commands:
 
 ```bash
-php spark migrate
-php spark db:seed GrooveSeeder
+composer install --no-dev --optimize-autoloader
+php spark migrate --all
+php spark cache:clear
 ```
 
-Do not run `migrate:refresh` against a database containing meaningful data.
+Seed only a fresh intended database. Then initialize a named active account with the secure procedure above.
+
+## GitHub readiness
+
+The repository includes application source, migrations, seeders, services, views, local assets, tests, safe environment templates, and deployment documentation. `.gitignore` excludes the real `.env`, `vendor/`, sessions, logs, caches, runtime uploads, and test artifacts.
+
+No remote, force-push, publication, hosting purchase, or deployment is performed automatically.
 
 ## Troubleshooting
 
-- **Database connection refused:** confirm the MySQL service is running and the `.env` host, port, username, and password are correct.
-- **Image preparation fails:** enable the PHP GD extension and confirm the upload directories are writable.
-- **Login always fails after seeding:** run `groove:staff-password` with a temporary `GROOVE_DEMO_PASSWORD` value.
-- **CSRF error after leaving a form open:** reload the form to obtain a fresh token.
-- **Port 8082 is busy:** choose another port and update `app.baseURL` in `.env`.
+- **Database connection refused:** verify MySQL is running and the `.env` host, port, database, username, and password are correct.
+- **Login always fails after seeding:** securely run `php spark groove:staff-password <username>` with the temporary `GROOVE_STAFF_PASSWORD` environment variable.
+- **Image preparation fails:** enable GD and Fileinfo; verify the two public upload directories are writable and persistent.
+- **Image rejected as not uploaded:** compare PHP's `upload_max_filesize` and `post_max_size` with the application 2 MB limit.
+- **CSRF failure after a form sat open:** reload the form for a fresh token.
+- **Assets or routes 404:** set the document root to `public/`, confirm the production `app.baseURL`, and enable URL rewriting.
+- **Port 8082 is busy locally:** choose another port and update the private `.env` base URL.
 
 ## Project status
 
-Part 1 provides the functional standalone foundation. Hosting, production credentials, deployment configuration, final accessibility review, and the broader visual refinement belong to Part 2. This repository does not claim to be hosted or production-ready.
+Part 2 visual refinement, security auditing, regression tests, and provider-neutral deployment preparation are complete locally. A real hosted deployment remains pending until a hosting provider, domain, production database, and credentials are supplied and verified.

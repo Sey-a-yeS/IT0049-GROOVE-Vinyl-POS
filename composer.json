@@ -1,9 +1,8 @@
 {
-    "name": "codeigniter4/appstarter",
-    "description": "CodeIgniter4 starter app",
+    "name": "groove/store-pos",
+    "description": "Standalone CodeIgniter 4 POS for the GROOVE vinyl and music store.",
     "license": "MIT",
     "type": "project",
-    "homepage": "https://codeigniter.com",
     "support": {
         "forum": "https://forum.codeigniter.com/",
         "source": "https://github.com/codeigniter4/CodeIgniter4",

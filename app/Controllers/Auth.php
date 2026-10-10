@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\UserModel;
+use Config\Services;
 
 class Auth extends BaseController
 {
@@ -17,6 +18,14 @@ class Auth extends BaseController
 
     public function attempt()
     {
+        $username = strtolower(trim((string) $this->request->getPost('username')));
+        $throttleKey = 'groove-login-' . hash('sha256', $this->request->getIPAddress() . '|' . $username);
+        if (ENVIRONMENT !== 'testing' && ! Services::throttler()->check($throttleKey, 5, MINUTE)) {
+            return redirect()->back()
+                ->with('login_username', $username)
+                ->with('error', 'Too many sign-in attempts. Please wait one minute and try again.');
+        }
+
         $rules = [
             'username' => 'required|max_length[50]',
             'password' => 'required|max_length[255]',
@@ -24,18 +33,18 @@ class Auth extends BaseController
 
         if (! $this->validate($rules)) {
             return redirect()->back()
-                ->with('login_username', trim((string) $this->request->getPost('username')))
+                ->with('login_username', $username)
                 ->with('errors', $this->validator->getErrors());
         }
 
         $user = (new UserModel())
-            ->where('username', trim((string) $this->request->getPost('username')))
+            ->where('username', $username)
             ->where('is_archived', false)
             ->first();
 
         if (! $user || ! password_verify((string) $this->request->getPost('password'), $user['password'])) {
             return redirect()->back()
-                ->with('login_username', trim((string) $this->request->getPost('username')))
+                ->with('login_username', $username)
                 ->with('error', 'The username or password is incorrect.');
         }
 

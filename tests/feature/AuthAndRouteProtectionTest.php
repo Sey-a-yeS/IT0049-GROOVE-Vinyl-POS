@@ -53,6 +53,27 @@ final class AuthAndRouteProtectionTest extends CIUnitTestCase
         $result->assertSessionHas('error', 'The username or password is incorrect.');
     }
 
+    public function testArchivedStaffCannotAuthenticate(): void
+    {
+        $user = (new UserModel())->where('username', 'vinylclerk')->first();
+        $password = 'Archived-' . bin2hex(random_bytes(12));
+        (new UserModel())->update($user['id'], [
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'is_archived' => true,
+        ]);
+        [$tokenName, $postedHash, $sessionHash] = $this->csrfValues();
+
+        $result = $this->withSession([$tokenName => $sessionHash])->post('/login', [
+            $tokenName => $postedHash,
+            'username' => 'vinylclerk',
+            'password' => $password,
+        ]);
+
+        $result->assertRedirect();
+        $result->assertSessionMissing('staff_id');
+        $result->assertSessionHas('error', 'The username or password is incorrect.');
+    }
+
     public function testAnonymousPostCannotCreateCustomer(): void
     {
         $before = $this->db->table('customers')->countAllResults();

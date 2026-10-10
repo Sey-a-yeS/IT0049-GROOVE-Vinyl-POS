@@ -62,4 +62,25 @@ final class CrudAndSchemaTest extends CIUnitTestCase
             $this->assertNotSame('unknown', password_get_info($staff['password'])['algoName']);
         }
     }
+
+    public function testPasswordCommandTargetsOneActiveAccountAndHashesTheSecret(): void
+    {
+        $target = (new UserModel())->where('username', 'grooveadmin')->first();
+        $other = (new UserModel())->where('username', 'vinylclerk')->first();
+        $otherHash = $other['password'];
+        $secret = 'Qa-' . bin2hex(random_bytes(16));
+        putenv('GROOVE_STAFF_PASSWORD=' . $secret);
+
+        try {
+            service('commands')->run('groove:staff-password', ['grooveadmin']);
+        } finally {
+            putenv('GROOVE_STAFF_PASSWORD');
+        }
+
+        $updated = (new UserModel())->find($target['id']);
+        $unchanged = (new UserModel())->find($other['id']);
+        $this->assertTrue(password_verify($secret, $updated['password']));
+        $this->assertNotSame($secret, $updated['password']);
+        $this->assertSame($otherHash, $unchanged['password']);
+    }
 }

@@ -19,10 +19,17 @@ class Staff extends BaseController
 
     public function index(): string
     {
+        $query = trim((string) $this->request->getGet('q'));
+        $this->users->where('is_archived', false);
+        if ($query !== '') {
+            $this->users->groupStart()->like('full_name', $query)->orLike('username', $query)->groupEnd();
+        }
+
         return view('staff/index', [
             'title' => 'Staff',
-            'staff' => $this->users->where('is_archived', false)->orderBy('full_name')->paginate(15),
+            'staff' => $this->users->orderBy('full_name')->paginate(15),
             'pager' => $this->users->pager,
+            'query' => $query,
         ]);
     }
 

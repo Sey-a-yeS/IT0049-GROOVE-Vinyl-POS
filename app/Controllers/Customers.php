@@ -15,10 +15,21 @@ class Customers extends BaseController
 
     public function index(): string
     {
+        $query = trim((string) $this->request->getGet('q'));
+        $this->customers->where('is_archived', false);
+        if ($query !== '') {
+            $this->customers->groupStart()
+                ->like('full_name', $query)
+                ->orLike('email', $query)
+                ->orLike('phone', $query)
+                ->groupEnd();
+        }
+
         return view('customers/index', [
             'title' => 'Customers',
-            'customers' => $this->customers->where('is_archived', false)->orderBy('full_name')->paginate(15),
+            'customers' => $this->customers->orderBy('full_name')->paginate(15),
             'pager' => $this->customers->pager,
+            'query' => $query,
         ]);
     }
 

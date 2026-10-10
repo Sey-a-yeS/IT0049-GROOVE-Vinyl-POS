@@ -19,10 +19,17 @@ class Products extends BaseController
 
     public function index(): string
     {
+        $query = trim((string) $this->request->getGet('q'));
+        $this->products->where('is_archived', false);
+        if ($query !== '') {
+            $this->products->like('name', $query);
+        }
+
         return view('products/index', [
             'title' => 'Products',
-            'products' => $this->products->where('is_archived', false)->orderBy('name')->paginate(12),
+            'products' => $this->products->orderBy('name')->paginate(12),
             'pager' => $this->products->pager,
+            'query' => $query,
         ]);
     }
 
