@@ -199,4 +199,28 @@ class App extends BaseConfig
      * @see http://www.w3.org/TR/CSP/
      */
     public bool $CSPEnabled = true;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $configuredURL = getenv('GROOVE_BASE_URL');
+        if ($configuredURL === false || trim($configuredURL) === '') {
+            $configuredURL = getenv('RENDER_EXTERNAL_URL');
+        }
+
+        if (is_string($configuredURL) && $configuredURL !== '') {
+            $parts = parse_url($configuredURL);
+            if (is_array($parts)
+                && in_array($parts['scheme'] ?? '', ['http', 'https'], true)
+                && isset($parts['host'])
+            ) {
+                $this->baseURL = rtrim($configuredURL, '/') . '/';
+            }
+        }
+
+        if (filter_var(getenv('RENDER') ?: 'false', FILTER_VALIDATE_BOOLEAN)) {
+            $this->forceGlobalSecureRequests = true;
+        }
+    }
 }

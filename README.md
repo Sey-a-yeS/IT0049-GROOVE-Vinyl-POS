@@ -131,7 +131,7 @@ Do not point PHPUnit at a database containing meaningful data; the database test
 
 ## Production deployment
 
-Use [.env.production.example](.env.production.example) as a checklist, never as a credentials file. Full provider-neutral instructions are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Use [.env.production.example](.env.production.example) as a checklist, never as a credentials file. Full provider-neutral instructions are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Render-specific Docker, MySQL, disk, migration, and verification instructions are in [docs/RENDER_DEPLOYMENT.md](docs/RENDER_DEPLOYMENT.md).
 
 Minimum production requirements:
 
@@ -154,11 +154,24 @@ php spark cache:clear
 
 Seed only a fresh intended database. Then initialize a named active account with the secure procedure above.
 
+### Render container support
+
+The repository includes a production Apache/PHP Docker image and optional Render Blueprint:
+
+- `Dockerfile` installs production Composer dependencies and the required `curl`, GD, Intl, Mbstring, MySQLi, and OPcache PHP extensions.
+- Apache serves only `public/` and listens on Render's runtime `PORT`.
+- Render's forwarded HTTPS scheme is mapped correctly for secure redirects and cookies.
+- `RENDER_EXTERNAL_URL` becomes the default production base URL; `GROOVE_BASE_URL` can override it for a custom domain.
+- MySQL configuration is read from `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, and optional `DB_SSL` environment variables.
+- `/var/data` is the persistent-disk mount for uploaded product/staff images and file sessions.
+
+Migrations and seeders do not run automatically when the container starts. Back up the target database, run `php spark migrate --all` deliberately, and run `php spark db:seed GrooveSeeder` only once for a new empty installation.
+
 ## GitHub readiness
 
-The repository includes application source, migrations, seeders, services, views, local assets, tests, safe environment templates, and deployment documentation. `.gitignore` excludes the real `.env`, `vendor/`, sessions, logs, caches, runtime uploads, and test artifacts.
+The repository includes application source, migrations, seeders, services, views, local assets, tests, safe environment templates, Docker/Render configuration, and deployment documentation. `.gitignore` and `.dockerignore` exclude the real `.env`, `vendor/`, sessions, logs, caches, runtime uploads, and test artifacts.
 
-No remote, force-push, publication, hosting purchase, or deployment is performed automatically.
+The GitHub repository is connected, but Render deployment, service creation, database provisioning, migrations, and hosting purchases are not performed automatically.
 
 ## Troubleshooting
 
@@ -172,4 +185,4 @@ No remote, force-push, publication, hosting purchase, or deployment is performed
 
 ## Project status
 
-Part 2 visual refinement, security auditing, regression tests, and provider-neutral deployment preparation are complete locally. A real hosted deployment remains pending until a hosting provider, domain, production database, and credentials are supplied and verified.
+Part 2 visual refinement, security auditing, regression tests, and Render deployment preparation are complete locally. A real hosted deployment remains pending until the Render web service, persistent disk, production MySQL database, credentials, migration, and live regression checks are completed and verified.

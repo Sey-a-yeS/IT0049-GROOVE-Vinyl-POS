@@ -1,0 +1,17 @@
+.git
+.gitignore
+.github
+.env
+.env.*
+!.env.example
+vendor
+build
+tests
+phpunit.dist.xml
+writable/*
+public/uploads/*
+*.log
+*.sqlite
+*.sqlite3
+.DS_Store
+docs/*.pdf

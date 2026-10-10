@@ -2,6 +2,8 @@
 
 This guide is provider-neutral. It prepares GROOVE for a standard PHP/MySQL host without inventing provider credentials or claiming that localhost satisfies the hosted-project requirement.
 
+For the repository's Apache/PHP Docker image and Render-specific procedure, see [`RENDER_DEPLOYMENT.md`](RENDER_DEPLOYMENT.md).
+
 ## 1. Hosting capabilities
 
 Confirm the provider supports:

@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: groove-vinyl-pos
+    runtime: docker
+    plan: starter
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /login
+    envVars:
+      - key: CI_ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSL
+        value: "false"
+    disk:
+      name: groove-data
+      mountPath: /var/data
+      sizeGB: 1

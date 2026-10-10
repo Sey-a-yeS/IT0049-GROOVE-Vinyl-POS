@@ -194,6 +194,35 @@ class Database extends Config
     {
         parent::__construct();
 
+        $environmentMap = [
+            'DB_HOST'     => 'hostname',
+            'DB_DATABASE' => 'database',
+            'DB_USERNAME' => 'username',
+            'DB_PASSWORD' => 'password',
+        ];
+
+        foreach ($environmentMap as $environmentName => $configKey) {
+            $value = getenv($environmentName);
+            if (is_string($value) && $value !== '') {
+                $this->default[$configKey] = $value;
+            }
+        }
+
+        $port = getenv('DB_PORT');
+        if (is_string($port) && ctype_digit($port) && (int) $port >= 1 && (int) $port <= 65535) {
+            $this->default['port'] = (int) $port;
+        }
+
+        $ssl = filter_var(getenv('DB_SSL') ?: 'false', FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($ssl !== null) {
+            $this->default['encrypt'] = $ssl;
+        }
+
+        if (ENVIRONMENT === 'production') {
+            $this->default['DBDebug'] = false;
+            $this->default['strictOn'] = true;
+        }
+
         // Ensure that we always set the database group to 'tests' if
         // we are currently running an automated test suite, so that
         // we don't overwrite live data on accident.
