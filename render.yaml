@@ -20,7 +20,9 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: DB_SSL
-        value: "false"
+        sync: false
+      - key: DB_SSL_CA
+        sync: false
     disk:
       name: groove-data
       mountPath: /var/data

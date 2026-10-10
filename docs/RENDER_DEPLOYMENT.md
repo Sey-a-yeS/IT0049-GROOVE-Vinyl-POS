@@ -31,7 +31,7 @@ The container maps:
 - `/var/www/html/public/uploads` → `/var/data/uploads`;
 - `/var/www/html/writable/session` → `/var/data/session`.
 
-Cache and logs remain ephemeral and are written to the container's `writable/` tree and standard error. Application logs should be inspected through Render logs.
+Cache and file logs remain ephemeral. Critical, alert, emergency, and error messages are also sent through PHP's `error_log` to container stderr, so application exceptions appear in Render logs while production error pages remain generic.
 
 ## 3. Create or connect MySQL
 
@@ -52,7 +52,18 @@ Use a least-privilege application user. Do not expose port 3306 publicly. Use `m
 
 ### External MySQL option
 
-Confirm the provider accepts connections from Render and supplies a MySQL hostname, port, database, username, password, and TLS requirement. Set `DB_SSL=true` only when the provider supports/requires the corresponding MySQL TLS connection.
+Confirm the provider accepts connections from Render and supplies a MySQL hostname, port, database, username, password, and TLS requirement.
+
+For Aiven MySQL:
+
+1. Copy the exact host, non-default port, database name, service username, and current password from Aiven's connection information. A new service commonly uses `defaultdb` and `avnadmin`, but use the values shown for the actual service.
+2. Download the Aiven project CA certificate.
+3. In the Render service's **Environment** page, add a secret file named `aiven-ca.pem` containing that certificate. Render mounts it at `/etc/secrets/aiven-ca.pem` in the Docker service.
+4. Set `DB_SSL=true` and `DB_SSL_CA=/etc/secrets/aiven-ca.pem`.
+
+GROOVE maps enabled MySQL TLS to CodeIgniter's required `encrypt` array and always verifies the server certificate. A boolean `encrypt=true` is not sufficient for CodeIgniter's MySQLi driver.
+
+If Render logs still report `Access denied`, the MySQL server was reached but rejected the supplied account. Re-copy the current Aiven username and password, confirm the database and Aiven-assigned port, and make sure `DB_HOST` contains only the hostname rather than the full service URI. Do not print the credential values while diagnosing the connection.
 
 ## 4. Create the Render web service
 
@@ -81,6 +92,7 @@ Do not set a custom Docker start command; the image's entrypoint validates `PORT
 | `DB_USERNAME` | Yes | Least-privilege application user |
 | `DB_PASSWORD` | Yes | Secret value entered only in Render |
 | `DB_SSL` | Provider-specific | `true` when the MySQL provider requires TLS; otherwise `false` |
+| `DB_SSL_CA` | When using a private CA | Absolute CA bundle path, such as `/etc/secrets/aiven-ca.pem` |
 | `GROOVE_BASE_URL` | Optional | Canonical custom HTTPS origin, e.g. `https://groove.example.com/` |
 
 Render supplies these automatically:
@@ -90,6 +102,8 @@ Render supplies these automatically:
 - `RENDER_EXTERNAL_URL` — used as the base URL when `GROOVE_BASE_URL` is absent.
 
 Never place database credentials or a staff password in `Dockerfile`, `render.yaml`, a committed `.env`, a build argument, or a screenshot.
+
+The production entrypoint refuses to start when a required `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, or `DB_PASSWORD` value is absent, or when a configured `DB_SSL_CA` file is unreadable. It reports only the setting name, never its value.
 
 ## 6. HTTPS and reverse proxy behavior
 

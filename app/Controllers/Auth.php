@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\UserModel;
+use CodeIgniter\Database\Exceptions\DatabaseException;
 use Config\Services;
 
 class Auth extends BaseController
@@ -37,10 +38,25 @@ class Auth extends BaseController
                 ->with('errors', $this->validator->getErrors());
         }
 
-        $user = (new UserModel())
-            ->where('username', $username)
-            ->where('is_archived', false)
-            ->first();
+        try {
+            $user = (new UserModel())
+                ->where('username', $username)
+                ->where('is_archived', false)
+                ->first();
+        } catch (DatabaseException $exception) {
+            log_message(
+                'critical',
+                'Authentication database operation failed ({exceptionClass}, code {exceptionCode}). Verify the Render DB_* values and TLS CA configuration.',
+                [
+                    'exceptionClass' => $exception::class,
+                    'exceptionCode'  => (int) $exception->getCode(),
+                ],
+            );
+
+            return redirect()->back()
+                ->with('login_username', $username)
+                ->with('error', 'Sign-in is temporarily unavailable. Please try again later.');
+        }
 
         if (! $user || ! password_verify((string) $this->request->getPost('password'), $user['password'])) {
             return redirect()->back()

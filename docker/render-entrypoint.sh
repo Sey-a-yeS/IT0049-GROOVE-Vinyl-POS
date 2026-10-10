@@ -15,6 +15,36 @@ fi
 
 export PORT="${PORT:-10000}"
 
+if [ "${CI_ENVIRONMENT:-}" = "production" ]; then
+    for required_variable in DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD; do
+        if ! printenv "$required_variable" | grep -q .; then
+            echo "Required production environment variable ${required_variable} is missing or empty." >&2
+            exit 1
+        fi
+    done
+
+    case "${DB_PORT}" in
+        ''|*[!0-9]*)
+            echo "DB_PORT must be a numeric TCP port." >&2
+            exit 1
+            ;;
+    esac
+
+    if [ "${DB_PORT}" -lt 1 ] || [ "${DB_PORT}" -gt 65535 ]; then
+        echo "DB_PORT must be between 1 and 65535." >&2
+        exit 1
+    fi
+fi
+
+case "${DB_SSL:-false}" in
+    true|TRUE|1|yes|YES|on|ON)
+        if [ -n "${DB_SSL_CA:-}" ] && [ ! -r "${DB_SSL_CA}" ]; then
+            echo "DB_SSL_CA does not reference a readable certificate file." >&2
+            exit 1
+        fi
+        ;;
+esac
+
 # /var/data is the Render persistent-disk mount. These directories also work
 # on the container's ephemeral filesystem for local smoke tests.
 install -d -o www-data -g www-data -m 0750 \

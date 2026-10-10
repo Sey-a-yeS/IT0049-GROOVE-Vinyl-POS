@@ -214,8 +214,17 @@ class Database extends Config
         }
 
         $ssl = filter_var(getenv('DB_SSL') ?: 'false', FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-        if ($ssl !== null) {
-            $this->default['encrypt'] = $ssl;
+        if ($ssl === true) {
+            $sslCa = getenv('DB_SSL_CA');
+
+            $this->default['encrypt'] = [
+                'ssl_ca'     => is_string($sslCa) && trim($sslCa) !== ''
+                    ? trim($sslCa)
+                    : '/etc/ssl/certs/ca-certificates.crt',
+                'ssl_verify' => true,
+            ];
+        } elseif ($ssl === false) {
+            $this->default['encrypt'] = false;
         }
 
         if (ENVIRONMENT === 'production') {

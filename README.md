@@ -162,7 +162,7 @@ The repository includes a production Apache/PHP Docker image and optional Render
 - Apache serves only `public/` and listens on Render's runtime `PORT`.
 - Render's forwarded HTTPS scheme is mapped correctly for secure redirects and cookies.
 - `RENDER_EXTERNAL_URL` becomes the default production base URL; `GROOVE_BASE_URL` can override it for a custom domain.
-- MySQL configuration is read from `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, and optional `DB_SSL` environment variables.
+- MySQL configuration is read from `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, and optional `DB_SSL`/`DB_SSL_CA` environment variables. When TLS is enabled, the MySQL server certificate is verified.
 - `/var/data` is the persistent-disk mount for uploaded product/staff images and file sessions.
 
 Migrations and seeders do not run automatically when the container starts. Back up the target database, run `php spark migrate --all` deliberately, and run `php spark db:seed GrooveSeeder` only once for a new empty installation.

@@ -2,10 +2,12 @@
 
 namespace Tests\Unit;
 
+use CodeIgniter\Log\Handlers\ErrorlogHandler;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\App;
 use Config\Cookie;
 use Config\Database;
+use Config\Logger;
 
 final class RenderEnvironmentConfigTest extends CIUnitTestCase
 {
@@ -16,7 +18,7 @@ final class RenderEnvironmentConfigTest extends CIUnitTestCase
     {
         parent::setUp();
 
-        foreach (['RENDER', 'RENDER_EXTERNAL_URL', 'GROOVE_BASE_URL', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD', 'DB_SSL'] as $name) {
+        foreach (['RENDER', 'RENDER_EXTERNAL_URL', 'GROOVE_BASE_URL', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD', 'DB_SSL', 'DB_SSL_CA'] as $name) {
             $this->originalEnvironment[$name] = getenv($name);
         }
     }
@@ -68,6 +70,7 @@ final class RenderEnvironmentConfigTest extends CIUnitTestCase
         putenv('DB_USERNAME=groove_app');
         putenv('DB_PASSWORD=temporary-test-value');
         putenv('DB_SSL=true');
+        putenv('DB_SSL_CA=/etc/secrets/aiven-ca.pem');
 
         $database = new Database();
 
@@ -76,6 +79,18 @@ final class RenderEnvironmentConfigTest extends CIUnitTestCase
         $this->assertSame('groove_production', $database->default['database']);
         $this->assertSame('groove_app', $database->default['username']);
         $this->assertSame('temporary-test-value', $database->default['password']);
-        $this->assertTrue($database->default['encrypt']);
+        $this->assertSame([
+            'ssl_ca' => '/etc/secrets/aiven-ca.pem',
+            'ssl_verify' => true,
+        ], $database->default['encrypt']);
+    }
+
+    public function testCriticalErrorsAreSentToPhpErrorLog(): void
+    {
+        $logger = new Logger();
+
+        $this->assertArrayHasKey(ErrorlogHandler::class, $logger->handlers);
+        $this->assertContains('critical', $logger->handlers[ErrorlogHandler::class]['handles']);
+        $this->assertSame(ErrorlogHandler::TYPE_OS, $logger->handlers[ErrorlogHandler::class]['messageType']);
     }
 }

@@ -3,6 +3,7 @@
 namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
+use CodeIgniter\Log\Handlers\ErrorlogHandler;
 use CodeIgniter\Log\Handlers\FileHandler;
 use CodeIgniter\Log\Handlers\HandlerInterface;
 
@@ -77,6 +78,16 @@ class Logger extends BaseConfig
      * @var array<class-string<HandlerInterface>, array<string, int|list<string>|string>>
      */
     public array $handlers = [
+        ErrorlogHandler::class => [
+            'handles' => [
+                'critical',
+                'alert',
+                'emergency',
+                'error',
+            ],
+            'messageType' => ErrorlogHandler::TYPE_OS,
+        ],
+
         /*
          * --------------------------------------------------------------------
          * File Handler
